@@ -255,42 +255,46 @@ class _ProfileViewState extends State<ProfileView> {
     Widget commentInputField() => isCommenting
       ? Padding(
           padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: commentController,
-                  decoration: InputDecoration(
-                    hintText: 'Write a comment...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: commentController,
+                    decoration: const InputDecoration(
+                      hintText: 'Write a comment...',
+                      border: InputBorder.none, 
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  if (commentController.text.isNotEmpty) {
-                    setState(() {
-                      _comments.add(UserComment(
-                        commenterName: userData.myUserAccount.name,
-                        commentContent: commentController.text,
-                        commentTime: 'Just now', // Static for demo
-                        commenterImg: userData.myUserAccount.img,
-                      ));
-                      commentController.clear();
-                      isCommenting = false;
-                    });
-                  }
-                },
-                child: const Text('Post'),
-              ),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: () {
+                    if (commentController.text.isNotEmpty) {
+                      setState(() {
+                        _comments.add(UserComment(
+                          commenterName: userData.myUserAccount.name,
+                          commentContent: commentController.text,
+                          commentTime: 'Just now', 
+                          commenterImg: userData.myUserAccount.img,
+                        ));
+                        commentController.clear();
+                        isCommenting = false;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         )
       : const SizedBox.shrink();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
