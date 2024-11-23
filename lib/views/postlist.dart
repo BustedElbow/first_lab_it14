@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/userdata.dart';
 import '../model/userpost.dart';
+import '../profileview.dart';
 
 class PostList extends StatefulWidget {
   const PostList({super.key, required this.userData});
@@ -158,7 +159,9 @@ class _PostListState extends State<PostList> {
         shrinkWrap: true,
         children: widget.userData.userList.map((userPost) {
           return InkWell(
-            onTap: () {},
+            onTap: () {
+              gotoPage(context, ProfileView(userPost: userPost));
+            },
             child: showPost(userPost),
           );
         }).toList(),
