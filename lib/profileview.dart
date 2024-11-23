@@ -3,8 +3,8 @@ import 'model/userdata.dart';
 import 'model/usercomment.dart';
 import 'model/userpost.dart';
 
-class Profileview extends StatelessWidget {
-  Profileview({super.key, required this.userPost});
+class ProfileView extends StatelessWidget {
+  ProfileView({super.key, required this.userPost});
 
   final UserPost userPost;
   final UserData userData = UserData();
@@ -111,13 +111,105 @@ class Profileview extends StatelessWidget {
         ),
       ),
       Padding(
-        
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          children: [
+            Text('All comments', style: boldTxtStyle1),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+      const SizedBox(height: 15,),
+    ],
+  );
+
+  Widget userline(UserPost userPost) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisAlignment: MainAxisAlignment.start,
+    children: [
+      Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+        ),
+        child: CircleAvatar(
+          radius: 20,
+          backgroundImage: AssetImage(userPost.userImg),
+        ),
+      ),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(userPost.username, style: nameTxtStyle),
+          Row(
+            children: [
+              Text(userPost.time),
+              const Text(' . '),
+              const Icon(Icons.group, size: 16, color: Colors.grey),
+            ],
+          ),
+        ],
       ),
     ],
   );
 
+  Widget postImage(UserPost userPost) => Padding(
+    padding: const EdgeInsets.all(10),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Text(userPost.postContent),
+          ],
+        ),
+        const SizedBox(
+          height: 15,
+        ),
+        Container(
+          height: 350,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(userPost.postImg),
+              fit: BoxFit.fill,
+            )
+          ),
+        ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        bottomOpacity: 0.0,
+        elevation: 0.0,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.grey,
+          )
+        ),
+      ),
+      body: ListView(
+        children: [
+          userline(userPost),
+          postImage(userPost),
+          //buttons(userPost),
+          commenters(userPost),
+          ListView(
+            shrinkWrap: true,
+            children: userData.commentList.map((userComment){
+              return userPostDetails(userComment);
+            }).toList(),
+          )
+        ],
+      ),
+    );
   }
 }
