@@ -238,7 +238,7 @@ class ProfileView extends StatelessWidget {
         children: [
           userline(userPost),
           postImage(userPost),
-          //buttons(userPost),
+          buttons(userPost),
           commenters(userPost),
           ListView(
             shrinkWrap: true,
