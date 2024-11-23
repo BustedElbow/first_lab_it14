@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_social_media/infoheader.dart';
 import 'package:flutter_social_media/mainheader.dart';
 import 'package:flutter_social_media/model/userdata.dart';
+import 'package:flutter_social_media/views/friendlist.dart';
 
 class SocialMedia extends StatefulWidget {
   const SocialMedia({super.key});
@@ -21,6 +22,7 @@ class _SocialMediaState extends State<SocialMedia> {
         children: [
           MainHeader(userData: userData),
           InfoHeader(userData: userData),
+          FriendList(userData: userData,)
         ],
       ),
     );
