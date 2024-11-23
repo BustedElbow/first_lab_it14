@@ -12,9 +12,9 @@ class InfoHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       children: [
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Text('Followers'),
@@ -22,10 +22,10 @@ class InfoHeader extends StatelessWidget {
             Text('Following'),
           ],
         ),
-        const SizedBox(
+        SizedBox(
           height: 10
         ),
-        const Divider(
+        Divider(
           color: Colors.grey,
         )
       ],
