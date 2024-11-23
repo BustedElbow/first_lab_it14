@@ -44,7 +44,9 @@ class _PostListState extends State<PostList> {
         style: TextButton.styleFrom(
           foregroundColor: Colors.grey,
         ),
-        onPressed: () {},
+        onPressed: () {
+          gotoPage(context, ProfileView(userPost: userPost));
+        },
         icon: const Icon(Icons.message),
         label: const Text('Comment'),
       ),
