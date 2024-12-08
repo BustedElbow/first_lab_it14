@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -37,6 +38,7 @@ class _ProfileViewState extends State<ProfileView> {
     fontSize: 16,
   );
 
+
   Widget commentBtn(UserComment userComment) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Row(
@@ -62,9 +64,80 @@ class _ProfileViewState extends State<ProfileView> {
             ),
             const SizedBox(width: 15),
             const Text('Reply'),
+            const SizedBox(width: 15),
+            TextButton(
+              onPressed: () => showEditDialog(userComment),
+              child: const Text('Edit'),
+            ),
+            TextButton(
+              onPressed: () => confirmDelete(userComment),
+              child: const Text('Delete'),
+            ),
           ],
         ),
       );
+  
+  void confirmDelete(UserComment comment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text('Are you sure you want to delete this comment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await deleteComment(comment.id);
+              setState(() {
+                _comments.remove(comment);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showEditDialog(UserComment comment) {
+    final TextEditingController editController =
+        TextEditingController(text: comment.commentContent);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Comment'),
+        content: TextField(
+          controller: editController,
+          decoration: const InputDecoration(hintText: 'Enter new comment'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final updatedContent = editController.text.trim();
+              if (updatedContent.isNotEmpty) {
+                await editComment(comment.id, updatedContent);
+                setState(() {
+                  comment.commentContent = updatedContent;
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget commentDesc(UserComment userComment) => Padding(
         padding: const EdgeInsets.all(10),
@@ -267,23 +340,32 @@ class _ProfileViewState extends State<ProfileView> {
                     controller: commentController,
                     decoration: const InputDecoration(
                       hintText: 'Write a comment...',
-                      border: InputBorder.none, 
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 10),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.send),
-                  onPressed: () {
+                  onPressed: () async {
                     if (commentController.text.isNotEmpty) {
+                      // Firestore: Save the comment
+                      final docComment = FirebaseFirestore.instance
+                          .collection('comments')
+                          .doc(); // Create a new document
+
+                      final newComment = UserComment(
+                        id: docComment.id,
+                        commenterName: userData.myUserAccount.name,
+                        commentContent: commentController.text,
+                        commentTime: DateTime.now().toString(),
+                        commenterImg: userData.myUserAccount.img,
+                      );
+
+                      await docComment.set(newComment.toJson());
+
                       setState(() {
-                        _comments.add(UserComment(
-                          commenterName: userData.myUserAccount.name,
-                          commentContent: commentController.text,
-                          commentTime: 'Just now', 
-                          commenterImg: userData.myUserAccount.img,
-                        ));
+                        _comments.add(newComment);
                         commentController.clear();
                         isCommenting = false;
                       });
@@ -295,6 +377,53 @@ class _ProfileViewState extends State<ProfileView> {
           ),
         )
       : const SizedBox.shrink();
+
+  
+Future<void> fetchComments() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('comments').get();
+      setState(() {
+        _comments = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return UserComment(
+            id: doc.id,
+            // Provide default values or null checks
+            commenterName: data['commenterName'] ?? 'Unknown User',
+            commentContent: data['commentContent'] ?? 'No comment',
+            commentTime: data['commentTime'] ?? DateTime.now().toString(),
+            commenterImg: data['commenterImg'] ??
+                'default_profile.png', // Provide a default image path
+            isLiked: data['isLiked'] ?? false,
+          );
+        }).toList();
+      });
+    } catch (e) {
+      print('Error fetching comments: $e');
+    }
+  }
+
+
+  Future<void> editComment(String commentId, String newContent) async {
+    await FirebaseFirestore.instance
+        .collection('comments')
+        .doc(commentId)
+        .update({'commentContent': newContent});
+  }
+
+  Future<void> deleteComment(String commentId) async {
+    await FirebaseFirestore.instance
+        .collection('comments')
+        .doc(commentId)
+        .delete();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchComments(); // Fetch comments when the widget initializes
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -321,9 +450,9 @@ class _ProfileViewState extends State<ProfileView> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              ...userData.commentList.map((userComment) {
-                return userPostDetails(userComment);
-              }).toList(),
+              // ...userData.commentList.map((userComment) {
+              //   return userPostDetails(userComment);
+              // }).toList(),
               ..._comments.map((userComment) {
                 return userPostDetails(userComment);
               }).toList(),

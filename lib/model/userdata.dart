@@ -64,26 +64,26 @@ class UserData {
     ),
   ];
 
-  List<UserComment> commentList = [
-    UserComment(
-      commenterImg: 'lib/images/Miguel_Profile.jpg',
-      commenterName: 'Miguel Andrei Tan',
-      commentTime: '3w',
-      commentContent: 'What a lovely photo we got there!',
-    ),
-    UserComment(
-      commenterImg: 'lib/images/Rheniel_Profile.jpg',
-      commenterName: 'Rheniel Penional',
-      commentTime: '5w',
-      commentContent: 'Try the latte one!',
-    ),
-    UserComment(
-      commenterImg: 'lib/images/Miguel_Profile.jpg',
-      commenterName: 'Miguel Andrei Tan',
-      commentTime: '7w',
-      commentContent: 'Hello There!',
-    ),
-  ];
+  // List<UserComment> commentList = [
+  //   UserComment(
+  //     commenterImg: 'lib/images/Miguel_Profile.jpg',
+  //     commenterName: 'Miguel Andrei Tan',
+  //     commentTime: '3w',
+  //     commentContent: 'What a lovely photo we got there!',
+  //   ),
+  //   UserComment(
+  //     commenterImg: 'lib/images/Rheniel_Profile.jpg',
+  //     commenterName: 'Rheniel Penional',
+  //     commentTime: '5w',
+  //     commentContent: 'Try the latte one!',
+  //   ),
+  //   UserComment(
+  //     commenterImg: 'lib/images/Miguel_Profile.jpg',
+  //     commenterName: 'Miguel Andrei Tan',
+  //     commentTime: '7w',
+  //     commentContent: 'Hello There!',
+  //   ),
+  // ];
 
   Account myUserAccount = Account(
     name: 'Rheniel Penional',

@@ -16,6 +16,6 @@ class UserPost {
     required this.postImg,
     required this.numComments,
     required this.numShare,
-    required this.isLiked,
+    this.isLiked = false,
   });
 }
