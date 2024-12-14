@@ -8,9 +8,14 @@ import 'model/usercomment.dart';
 import 'model/userpost.dart';
 
 class ProfileView extends StatefulWidget {
-  const ProfileView({super.key, required this.userPost});
+  const ProfileView({
+    super.key,
+    required this.userPost,
+    this.showCommentField = false,
+  });
 
   final UserPost userPost;
+  final bool showCommentField;
 
   @override
   State<ProfileView> createState() => _ProfileViewState();
@@ -20,7 +25,7 @@ class _ProfileViewState extends State<ProfileView> {
   final UserData userData = UserData();
 
   final TextEditingController commentController = TextEditingController();
-  bool isCommenting = false;
+  bool _showCommentField = false;
   List<UserComment> _comments = [];
 
   @override
@@ -38,9 +43,10 @@ class _ProfileViewState extends State<ProfileView> {
             snapshot.docs.map((doc) => UserComment.fromFirestore(doc)).toList();
       });
     });
+    _showCommentField = widget.showCommentField;
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -144,15 +150,19 @@ class _ProfileViewState extends State<ProfileView> {
                             label: const Text('Like'),
                           ),
                           TextButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              setState(() {
+                                _showCommentField = !_showCommentField;
+                              });
+                            },
                             icon: const Icon(Icons.comment),
                             label: const Text('Comment'),
                           ),
-                          TextButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.share),
-                            label: const Text('Share'),
-                          ),
+                          // TextButton.icon(
+                          //   onPressed: () {},
+                          //   icon: const Icon(Icons.share),
+                          //   label: const Text('Share'),
+                          // ),
                         ],
                       ),
                     ),
@@ -193,42 +203,42 @@ class _ProfileViewState extends State<ProfileView> {
               },
             ),
           ),
-
           // Comment Input
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: commentController,
-                    decoration: InputDecoration(
-                      hintText: 'Write a comment...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+          if (_showCommentField)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: commentController,
+                      decoration: InputDecoration(
+                        hintText: 'Write a comment...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF6448FE),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _addComment,
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFF6448FE),
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: _addComment,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

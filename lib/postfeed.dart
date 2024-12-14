@@ -142,7 +142,11 @@ class PostFeed extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ProfileView(userPost: post),
+                          builder: (context) => ProfileView(
+                            userPost: post,
+                            showCommentField:
+                                true, // Show comment field when coming from comment button
+                          ),
                         ),
                       );
                     },
