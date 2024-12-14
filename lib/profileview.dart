@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,10 +12,8 @@ class ProfileView extends StatefulWidget {
 
   final UserPost userPost;
 
-
   @override
   State<ProfileView> createState() => _ProfileViewState();
- 
 }
 
 class _ProfileViewState extends State<ProfileView> {
@@ -24,445 +23,361 @@ class _ProfileViewState extends State<ProfileView> {
   bool isCommenting = false;
   List<UserComment> _comments = [];
 
-  var nameTxtStyle = const TextStyle(
-    fontWeight: FontWeight.bold,
-    fontSize: 18,
-  );
+  @override
+  void initState() {
+    super.initState();
+    // Listen to comments for this specific post
+    FirebaseFirestore.instance
+        .collection('comments')
+        .where('postId', isEqualTo: widget.userPost.id)
+        .orderBy('commentTime', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+      setState(() {
+        _comments =
+            snapshot.docs.map((doc) => UserComment.fromFirestore(doc)).toList();
+      });
+    });
+  }
 
-  var boldTxtStyle = const TextStyle(
-    fontWeight: FontWeight.bold,
-  );
+ @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+        ),
+        title: const Text(
+          'Post Details',
+          style: TextStyle(color: Colors.black),
+        ),
+      ),
+      body: Column(
+        children: [
+          // Post Section
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('posts')
+                .doc(widget.userPost.id)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const SizedBox();
 
-  var boldTxtStyle1 = const TextStyle(
-    fontWeight: FontWeight.bold,
-    fontSize: 16,
-  );
+              final postData = snapshot.data!.data() as Map<String, dynamic>;
+              final isLiked = postData['isLiked'] ?? false;
 
-
-  Widget commentBtn(UserComment userComment) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Text(userComment.commentTime),
-            const SizedBox(width: 15),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  userComment.isLiked = !userComment.isLiked; // Toggle state
-                });
-              },
-              child: userComment.isLiked
-                  ? const Icon(
-                      Icons.thumb_up,
-                      color: Colors.blue,
-                      size: 16,
-                    )
-                  : const Text(
-                      'Like',
+              return Container(
+                color: Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // User Info
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundImage:
+                                NetworkImage(widget.userPost.userImg),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.userPost.username,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                widget.userPost.time,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-            ),
-            const SizedBox(width: 15),
-            const Text('Reply'),
-            const SizedBox(width: 15),
-            TextButton(
-              onPressed: () => showEditDialog(userComment),
-              child: const Text('Edit'),
-            ),
-            TextButton(
-              onPressed: () => confirmDelete(userComment),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      );
-  
-  void confirmDelete(UserComment comment) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Comment'),
-        content: const Text('Are you sure you want to delete this comment?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              await deleteComment(comment.id);
-              setState(() {
-                _comments.remove(comment);
-              });
-              Navigator.pop(context);
+                    // Post Content
+                    if (widget.userPost.postContent.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: Text(
+                          widget.userPost.postContent,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    // Post Image
+                    if (widget.userPost.postImg.isNotEmpty)
+                      Image.network(
+                        widget.userPost.postImg,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    // Interaction Buttons
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () async {
+                              // Update Firestore
+                              await UserPost.updatePost(
+                                  widget.userPost.id, {'isLiked': !isLiked});
+                            },
+                            icon: Icon(
+                              Icons.thumb_up,
+                              color: isLiked ? Colors.blue : Colors.grey,
+                            ),
+                            label: const Text('Like'),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.comment),
+                            label: const Text('Comment'),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.share),
+                            label: const Text('Share'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                  ],
+                ),
+              );
             },
-            child: const Text('Delete'),
           ),
-        ],
-      ),
-    );
-  }
 
-  void showEditDialog(UserComment comment) {
-    final TextEditingController editController =
-        TextEditingController(text: comment.commentContent);
+          // Comments Section
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('comments')
+                  .where('postId', isEqualTo: widget.userPost.id)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Comment'),
-        content: TextField(
-          controller: editController,
-          decoration: const InputDecoration(hintText: 'Enter new comment'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final updatedContent = editController.text.trim();
-              if (updatedContent.isNotEmpty) {
-                await editComment(comment.id, updatedContent);
-                setState(() {
-                  comment.commentContent = updatedContent;
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No comments yet'));
+                }
 
+                final comments = snapshot.data!.docs
+                    .map((doc) => UserComment.fromFirestore(doc))
+                    .toList();
 
-  Widget commentDesc(UserComment userComment) => Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              userComment.commenterName,
-              style: boldTxtStyle,
-            ),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                Text(userComment.commentContent),
-              ],
-            ),
-          ],
-        ),
-      );
-
-  Widget commentSpace(UserComment userComment) => Container(
-        decoration: const BoxDecoration(
-            color: Color.fromARGB(35, 158, 158, 158),
-            borderRadius: BorderRadius.all(
-              Radius.circular(20),
-            )),
-        child: commentDesc(userComment),
-      );
-
-  Widget commenterPic(UserComment userComment) => Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-        ),
-        child: CircleAvatar(
-            radius: 20, backgroundImage: AssetImage(userComment.commenterImg)),
-      );
-
-  Widget userCommenterLine(UserComment userComment) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          commenterPic(userComment),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              commentSpace(userComment),
-              commentBtn(userComment),
-            ],
-          )
-        ],
-      );
-
-  Widget userPostDetails(UserComment userComment) => Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const SizedBox(
-            height: 15,
-          ),
-          userCommenterLine(userComment)
-        ],
-      );
-
-  Widget commenters() => Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const Divider(color: Color.fromARGB(86, 158, 158, 158)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                Text(
-                  widget.userPost.numShare,
-                  style: boldTxtStyle,
-                ),
-              ],
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: comments.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) =>
+                      _buildCommentItem(comments[index]),
+                );
+              },
             ),
           ),
-          const SizedBox(height: 10),
-        ],
-      );
 
-  Widget buttons() => Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const Divider(color: Color.fromARGB(86, 158, 158, 158)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                      foregroundColor:
-                          (widget.userPost.isLiked) ? Colors.blue : Colors.grey),
-                  onPressed: () {
-                    setState(() {
-                      widget.userPost.isLiked = (widget.userPost.isLiked) ? false : true;
-                    });
-                  },
-                  icon: const Icon(
-                    Icons.thumb_up,
-                    size: 20,
-                  ),
-                  label: const Text('Like'),
-                ),
-                TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: Colors.grey),
-                  onPressed: () {
-                    setState(() {
-                        isCommenting = !isCommenting;
-                    });
-                  },
-                  icon: const Icon(Icons.chat_bubble, size: 20),
-                  label: const Text('Comment'),
-                ),
-                TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: Colors.grey),
-                  onPressed: () {},
-                  icon: const Icon(Icons.share),
-                  label: const Text('Share'),
-                ),
-              ],
-            ),
-          ),
-          const Divider(
-            color: Color.fromARGB(86, 158, 158, 158),
-          ),
-        ],
-      );
-
-  Widget userline() => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
+          // Comment Input
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-            ),
-            child: CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage(widget.userPost.userImg),
-            ),
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(widget.userPost.username, style: nameTxtStyle),
-              Row(
-                children: [
-                  Text(widget.userPost.time),
-                  const Text(' . '),
-                  const Icon(Icons.group, size: 16, color: Colors.grey),
-                ],
-              ),
-            ],
-          ),
-        ],
-      );
-
-  Widget postImage() => Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                Text(widget.userPost.postContent),
-              ],
-            ),
-            const SizedBox(
-              height: 15,
-            ),
-            Container(
-              height: 350,
-              decoration: BoxDecoration(
-                  image: DecorationImage(
-                image: AssetImage(widget.userPost.postImg),
-                fit: BoxFit.fill,
-              )),
-            ),
-          ],
-        ),
-      );
-
-    Widget commentInputField() => isCommenting
-      ? Padding(
-          padding: const EdgeInsets.all(10),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey),
-            ),
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: commentController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Write a comment...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () async {
-                    if (commentController.text.isNotEmpty) {
-                      // Firestore: Save the comment
-                      final docComment = FirebaseFirestore.instance
-                          .collection('comments')
-                          .doc(); // Create a new document
-
-                      final newComment = UserComment(
-                        id: docComment.id,
-                        commenterName: userData.myUserAccount.name,
-                        commentContent: commentController.text,
-                        commentTime: DateTime.now().toString(),
-                        commenterImg: userData.myUserAccount.img,
-                      );
-
-                      await docComment.set(newComment.toJson());
-
-                      setState(() {
-                        _comments.add(newComment);
-                        commentController.clear();
-                        isCommenting = false;
-                      });
-                    }
-                  },
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  backgroundColor: const Color(0xFF6448FE),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: _addComment,
+                  ),
                 ),
               ],
             ),
           ),
-        )
-      : const SizedBox.shrink();
-
-  
-Future<void> fetchComments() async {
-    try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection('comments').get();
-      setState(() {
-        _comments = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return UserComment(
-            id: doc.id,
-            // Provide default values or null checks
-            commenterName: data['commenterName'] ?? 'Unknown User',
-            commentContent: data['commentContent'] ?? 'No comment',
-            commentTime: data['commentTime'] ?? DateTime.now().toString(),
-            commenterImg: data['commenterImg'] ??
-                'default_profile.png', // Provide a default image path
-            isLiked: data['isLiked'] ?? false,
-          );
-        }).toList();
-      });
-    } catch (e) {
-      print('Error fetching comments: $e');
-    }
-  }
-
-
-  Future<void> editComment(String commentId, String newContent) async {
-    await FirebaseFirestore.instance
-        .collection('comments')
-        .doc(commentId)
-        .update({'commentContent': newContent});
-  }
-
-  Future<void> deleteComment(String commentId) async {
-    await FirebaseFirestore.instance
-        .collection('comments')
-        .doc(commentId)
-        .delete();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fetchComments(); // Fetch comments when the widget initializes
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        bottomOpacity: 0.0,
-        elevation: 0.0,
-        leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Colors.grey,
-            )),
-      ),
-      body: ListView(
-        children: [
-          userline(),
-          postImage(),
-          buttons(),
-          commenters(),
-          ListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              // ...userData.commentList.map((userComment) {
-              //   return userPostDetails(userComment);
-              // }).toList(),
-              ..._comments.map((userComment) {
-                return userPostDetails(userComment);
-              }).toList(),
-            ],
-          ),
-          commentInputField(),
         ],
       ),
     );
   }
 
-}
+  Future<void> _addComment() async {
+    if (commentController.text.trim().isEmpty) return;
 
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser?.uid)
+        .get();
+
+    final userData = userDoc.data()!;
+
+    final comment = UserComment(
+      id: '',
+      postId: widget.userPost.id,
+      commenterUid: currentUser!.uid,
+      commenterImg: userData['img'],
+      commenterName: userData['name'],
+      commentTime: DateTime.now().toString(),
+      commentContent: commentController.text.trim(),
+    );
+
+    await UserComment.createComment(comment);
+    commentController.clear();
+  }
+
+  Widget _buildCommentItem(UserComment comment) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isOwner = comment.commenterUid == currentUser?.uid;
+
+    void _showEditDialog() {
+      final editController =
+          TextEditingController(text: comment.commentContent);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Edit Comment'),
+          content: TextField(
+            controller: editController,
+            decoration: const InputDecoration(
+              hintText: 'Edit your comment...',
+            ),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                UserComment.updateComment(
+                  comment.id,
+                  {'commentContent': editController.text.trim()},
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    void _showDeleteDialog() {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Comment'),
+          content: const Text('Are you sure you want to delete this comment?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                UserComment.deleteComment(comment.id);
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundImage: NetworkImage(comment.commenterImg),
+                radius: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      comment.commenterName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      comment.commentTime,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              if (isOwner)
+                PopupMenuButton(
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _showEditDialog();
+                    } else if (value == 'delete') {
+                      _showDeleteDialog();
+                    }
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(comment.commentContent),
+        ],
+      ),
+    );
+  }
+}

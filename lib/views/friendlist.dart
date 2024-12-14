@@ -1,82 +1,86 @@
 import 'package:flutter/material.dart';
-import '../model/userdata.dart';
-import '../model/friend.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FriendList extends StatelessWidget {
-  const FriendList({super.key, required this.userData});
-
-  final UserData userData;
-
-  final followTxtStyle= const TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.bold,
-  );
-
-  Widget friend(Friend friend) => Card(
-    child: Column(
-      children: [
-        Expanded(
-          child: Image.asset(
-            friend.img,
-          )
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(friend.name),
-        )
-      ]
-    ),
-  );
-
-  Widget friendListGrid() => GridView.builder(
-    shrinkWrap: true,
-    physics: const BouncingScrollPhysics(),
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 3,
-      mainAxisExtent: 180,
-    ),
-    itemCount: userData.friendList.length,
-    itemBuilder: (BuildContext ctx, index) {
-      return friend(userData.friendList[index]);
-    },
-  );
+  const FriendList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 10,),
-        Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Row(
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .where('uid', isNotEqualTo: currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Center(child: Text('Something went wrong'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final users = snapshot.data!.docs;
+
+        return SizedBox(
+          height: 220, // Fixed height for friend list section
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Friends',
-                style: followTxtStyle,
-              )
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  'Friends',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const ClampingScrollPhysics(),
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.all(8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 1,
+                    mainAxisExtent: 120,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final userData =
+                        users[index].data() as Map<String, dynamic>;
+                    return Card(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 35,
+                            backgroundImage: NetworkImage(userData['img']),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            userData['name'],
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Row(
-            children: [
-              Text('${userData.myUserAccount.numFriends} Friends'),
-            ],
-          )
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 380,
-          child: friendListGrid(),
-        ),
-        SizedBox(
-          height: 10,
-          child: Container(
-            color: Colors.grey,
-          )
-        )
-      ],
+        );
+      },
     );
   }
 }

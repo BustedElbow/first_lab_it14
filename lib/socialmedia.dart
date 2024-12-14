@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_social_media/createpost.dart';
 import 'package:flutter_social_media/infoheader.dart';
 import 'package:flutter_social_media/mainheader.dart';
 import 'package:flutter_social_media/model/userdata.dart';
+import 'package:flutter_social_media/postfeed.dart';
 import 'package:flutter_social_media/views/friendlist.dart';
 import 'package:flutter_social_media/views/postlist.dart';
 
@@ -23,26 +26,38 @@ class _SocialMediaState extends State<SocialMedia> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       body: ListView(
         shrinkWrap: true,
         children: [
-          MainHeader(userData: userData),
-          InfoHeader(userData: userData),
-          FriendList(userData: userData),
-          const SizedBox(
-            height: 20,
+          ElevatedButton(
+            onPressed: () {
+              FirebaseAuth.instance.signOut();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Logout'),
           ),
+          MainHeader(),
+          InfoHeader(userData: userData),
+          FriendList(),
+          const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.only(left: 8),
             child: Row(
-              children: [
-                Text('Posts', style: followTxtStyle)
-              ],
+              children: [Text('Posts', style: followTxtStyle)],
             ),
           ),
           const SizedBox(height: 20),
-          PostList(userData: userData),
+          PostFeed(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF6448FE),
+        onPressed: () => CreatePost.show(context),
+        child: const Icon(Icons.add),
       ),
     );
   }
